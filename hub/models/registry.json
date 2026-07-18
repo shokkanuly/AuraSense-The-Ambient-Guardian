@@ -1,0 +1,17 @@
+{
+  "nilm": {
+    "version": "1.0",
+    "file": "nilm_v1_0.onnx",
+    "description": "Sequence-to-point CNN for home energy disaggregation"
+  },
+  "anomaly": {
+    "version": "1.0",
+    "file": "anomaly_v1_0.onnx",
+    "description": "Autoencoder-based behavioral anomaly detection"
+  },
+  "fall_detection": {
+    "version": "1.0",
+    "file": "fall_v1_0.onnx",
+    "description": "LSTM model detecting falls from mmWave radar sequences"
+  }
+}
