@@ -1,0 +1,173 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Design system definition.
+ *
+ * The @theme inline block maps CSS custom properties to Tailwind utility
+ * classes (e.g. --color-primary -> bg-primary, text-primary).
+ *
+ * The :root and .dark blocks define the actual color values using oklch.
+ * All colors MUST use oklch format.
+ *
+ * To add a new semantic color:
+ * 1. Add the variable to :root (light value) and .dark (dark value)
+ * 2. Register it in @theme inline as --color-<name>: var(--<name>)
+ */
+
+@theme inline {
+  --font-display: "Urbanist", sans-serif;
+  --font-body: "Epilogue", sans-serif;
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-ring-offset-background: var(--background);
+
+  --color-ink: var(--ink);
+  --color-midnight: var(--midnight);
+  --color-void: var(--void);
+  --color-indigo: var(--indigo);
+  --color-indigo-glow: var(--indigo-glow);
+  --color-frost: var(--frost);
+  --color-steel: var(--steel);
+  --color-slate: var(--slate);
+}
+
+:root {
+  --radius: 0.75rem;
+
+  /* Midnight Indigo palette — locked */
+  --ink: oklch(0.98 0.005 260);
+  --midnight: oklch(0.14 0.04 264);
+  --void: oklch(0.1 0.03 264);
+  --indigo: oklch(0.55 0.22 266);
+  --indigo-glow: oklch(0.65 0.24 266);
+  --frost: oklch(0.95 0.01 260);
+  --steel: oklch(0.65 0.03 260);
+  --slate: oklch(0.4 0.04 264);
+
+  /* Semantic mapping */
+  --background: var(--void);
+  --foreground: var(--ink);
+  --card: var(--midnight);
+  --card-foreground: var(--ink);
+  --popover: var(--midnight);
+  --popover-foreground: var(--ink);
+  --primary: var(--indigo);
+  --primary-foreground: var(--ink);
+  --secondary: var(--midnight);
+  --secondary-foreground: var(--ink);
+  --muted: var(--slate);
+  --muted-foreground: var(--steel);
+  --accent: var(--indigo);
+  --accent-foreground: var(--ink);
+  --destructive: oklch(0.6 0.22 25);
+  --destructive-foreground: var(--ink);
+  --border: oklch(1 0 0 / 8%);
+  --input: oklch(1 0 0 / 10%);
+  --ring: var(--indigo);
+}
+
+.dark {
+  --background: var(--void);
+  --foreground: var(--ink);
+  --card: var(--midnight);
+  --card-foreground: var(--ink);
+  --popover: var(--midnight);
+  --popover-foreground: var(--ink);
+  --primary: var(--indigo);
+  --primary-foreground: var(--ink);
+  --secondary: var(--midnight);
+  --secondary-foreground: var(--ink);
+  --muted: var(--slate);
+  --muted-foreground: var(--steel);
+  --accent: var(--indigo);
+  --accent-foreground: var(--ink);
+  --destructive: oklch(0.55 0.2 25);
+  --destructive-foreground: var(--ink);
+  --border: oklch(1 0 0 / 8%);
+  --input: oklch(1 0 0 / 10%);
+  --ring: var(--indigo);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-body);
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-display);
+  }
+}
+
+@utility text-gradient {
+  background: linear-gradient(135deg, var(--color-ink) 0%, var(--color-indigo-glow) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+@utility glow-indigo {
+  box-shadow: 0 0 40px -10px color-mix(in oklab, var(--color-indigo) 40%, transparent);
+}
+
+@utility surface-glow {
+  background: radial-gradient(
+    1200px 600px at 50% -100px,
+    color-mix(in oklab, var(--color-indigo) 20%, transparent) 0%,
+    transparent 60%
+  );
+}
+
+@utility mesh-bg {
+  background-image:
+    radial-gradient(
+      circle at 20% 30%,
+      color-mix(in oklab, var(--color-indigo) 12%, transparent) 0%,
+      transparent 40%
+    ),
+    radial-gradient(
+      circle at 80% 70%,
+      color-mix(in oklab, var(--color-indigo) 8%, transparent) 0%,
+      transparent 40%
+    );
+}
