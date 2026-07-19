@@ -36,8 +36,8 @@ PAYLOAD_MODELS = {
 class IngestionService:
     def __init__(self):
         self.db_pool = None
-        self.loop = asyncio.get_event_loop()
-        self.queue = asyncio.Queue()
+        self.loop = None
+        self.queue = None
 
     async def connect_db(self):
         logger.info("Connecting to database...")
@@ -142,6 +142,8 @@ class IngestionService:
             logger.error(f"Failed to connect to MQTT Broker, return code {rc}")
 
     async def run(self):
+        self.loop = asyncio.get_running_loop()
+        self.queue = asyncio.Queue()
         await self.connect_db()
 
         # Start database insertion worker
