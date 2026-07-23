@@ -4,6 +4,7 @@ import asyncio
 import logging
 import uuid
 from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 import asyncpg
 from typing import Dict, Any, List
 
@@ -21,10 +22,21 @@ except ImportError:
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/aurasense")
 MODEL_REGISTRY_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "../models/registry.json"))
 INFERENCE_INTERVAL_SEC = 15
+# Local timezone for hour-of-day logic (e.g. "water running at 3 a.m."). Defaults
+# to the host's local time; override with AURASENSE_TZ (an IANA name).
+LOCAL_TZ_NAME = os.getenv("AURASENSE_TZ")
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger("inference-service")
+
+
+def _local_hour() -> int:
+    """Current hour (0-23) in the configured local timezone, not UTC."""
+    now = datetime.now(timezone.utc)
+    if LOCAL_TZ_NAME:
+        return now.astimezone(ZoneInfo(LOCAL_TZ_NAME)).hour
+    return now.astimezone().hour
 
 class InferenceService:
     def __init__(self):
@@ -199,7 +211,7 @@ class InferenceService:
 
         # Simple threshold-based behavioral score simulation
         # High activity at abnormal hours (e.g. 3 AM) yields high anomaly score
-        current_hour = datetime.now(timezone.utc).hour
+        current_hour = _local_hour()
         score = 0.1
         context = {"total_readings_last_hour": row_count}
 
@@ -284,14 +296,14 @@ class InferenceService:
 
         try:
             while True:
-                start_time = asyncio.get_event_loop().time()
+                start_time = asyncio.get_running_loop().time()
                 try:
                     await self.execute_inference_cycle()
                     await self.check_node_stale_status()
                 except Exception as e:
                     logger.error(f"Error in inference cycle: {e}", exc_info=True)
                 
-                elapsed = asyncio.get_event_loop().time() - start_time
+                elapsed = asyncio.get_running_loop().time() - start_time
                 sleep_time = max(0.1, INFERENCE_INTERVAL_SEC - elapsed)
                 await asyncio.sleep(sleep_time)
         except asyncio.CancelledError:

@@ -75,10 +75,9 @@ async def listen_for_events():
             logger.error(f"Database connection error in PG listener loop: {e}. Retrying in 5 seconds...")
             await asyncio.sleep(5)
 
-# Start listener task as a background task upon importing/starting router
-@router.on_event("startup")
-async def start_websocket_listener():
-    asyncio.create_task(listen_for_events())
+# NOTE: the listener is started from the application lifespan in main.py.
+# Router-level ``startup`` hooks are not executed by FastAPI, so starting it
+# here would silently never run.
 
 @router.websocket("/ws/v1/events")
 async def websocket_events_endpoint(websocket: WebSocket):
