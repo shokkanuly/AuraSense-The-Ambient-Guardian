@@ -2,9 +2,8 @@ import os
 import asyncio
 import logging
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Depends, HTTPException, status, Request
+from fastapi import FastAPI, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import asyncpg
 
 # Configure Logging
@@ -18,6 +17,7 @@ DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localho
 # assistant. Neither module imports back into this one, so there is no cycle.
 from hub.services.api.routers.websocket import listen_for_events
 from hub.services.llm_assistant import LLMAssistant
+from hub.services.api.security import verify_token
 
 
 @asynccontextmanager
@@ -67,11 +67,17 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS: permissive for local development. Stage F2 replaces this with an
-# allow-list of the dashboard/app origins once pairing-based auth lands.
+# CORS restricted to the configured dashboard/app origins. Note that a wildcard
+# origin combined with credentials is rejected by browsers anyway, so this is
+# both safer and more correct. Override with AURASENSE_ALLOWED_ORIGINS (CSV).
+ALLOWED_ORIGINS = [
+    o.strip()
+    for o in os.getenv("AURASENSE_ALLOWED_ORIGINS", "http://localhost:3000").split(",")
+    if o.strip()
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -83,32 +89,18 @@ async def get_db(request: Request):
         yield conn
 
 
-# Simple Authentication placeholder — replaced by real pairing-token auth in F2.
-security = HTTPBearer(auto_error=False)
-
-
-def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    # In full production (F2), decode the JWT minted from the local pairing secret.
-    # For now, validate presence only.
-    if not credentials or not credentials.credentials:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or missing access token",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    return credentials.credentials
-
-
-# Health check endpoint
+# Health check endpoint (open — used for liveness probes)
 @app.get("/health")
 async def health():
     return {"status": "healthy", "service": "AuraSense Hub API"}
 
 
-# Import and include routers (imported last: they depend on get_db defined above)
-from hub.services.api.routers import nodes, events, assistant, websocket
+# Import and include routers (imported last: they depend on get_db defined above).
+# The data routers require a valid pairing token; /pair and the health check are open.
+from hub.services.api.routers import nodes, events, assistant, websocket, pairing
 
-app.include_router(nodes.router, prefix="/api/v1", tags=["Nodes"])
-app.include_router(events.router, prefix="/api/v1", tags=["Events"])
-app.include_router(assistant.router, prefix="/api/v1", tags=["Assistant"])
+app.include_router(pairing.router, prefix="/api/v1", tags=["Pairing"])
+app.include_router(nodes.router, prefix="/api/v1", tags=["Nodes"], dependencies=[Depends(verify_token)])
+app.include_router(events.router, prefix="/api/v1", tags=["Events"], dependencies=[Depends(verify_token)])
+app.include_router(assistant.router, prefix="/api/v1", tags=["Assistant"], dependencies=[Depends(verify_token)])
 app.include_router(websocket.router, tags=["WebSockets"])

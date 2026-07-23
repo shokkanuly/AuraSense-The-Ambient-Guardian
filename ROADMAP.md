@@ -69,11 +69,18 @@ docker-compose.yml   ✅ TimescaleDB + Mosquitto
   `test_f1_event_bridge` proves an inserted event is broadcast over the WebSocket (the headline bug); `test_f1_ingestion` proves the paho-v2 signature and a real DB write + node upsert. Import smoke test shows the app constructs with the lifespan, all routes wired, and **no deprecation warnings from our code**.
 - **Not yet**: the full MQTT→inference→WS chain (needs the F3 simulator + inference running together); covered by proving each half here.
 
-### ⬜ F2 · Real pairing-based auth + lock-down — **M**
+### ✅ F2 · Real pairing-based auth + lock-down — **M**  _(done 2026-07-24)_
 - **Goal**: the API is no longer open; clients authenticate with a per-home paired token.
-- **Steps**: local pairing secret → signed JWT (short-lived) issued by a `/api/v1/pair` flow; real `Depends(verify_token)` on every `/api/v1` router; restrict CORS to the dashboard/app origins; add `hub/config` secrets handling (env, not compose literals).
+- **Steps** (done):
+  - `hub/services/api/security.py`: HS256 JWT signing/verification + constant-time pairing-code check; config from env (`AURASENSE_JWT_SECRET`, `AURASENSE_PAIRING_CODE`, `AURASENSE_TOKEN_TTL_HOURS`) with an insecure-dev-secret warning.
+  - `POST /api/v1/pair` (`routers/pairing.py`, open) exchanges the pairing code for a short-lived bearer token.
+  - `Depends(verify_token)` applied to the nodes/events/assistant routers; `/pair` and `/health` stay open.
+  - CORS restricted to `AURASENSE_ALLOWED_ORIGINS` (default the dashboard origin) instead of `*`.
+  - `.env.example` documents all secrets/config (and the host DB port 5434).
+  - Added `PairRequest`/`PairResponse` to `shared/types/api_types.py`.
 - **Depends on**: F1.
-- **Done when**: `GET /api/v1/nodes` returns 401 without a token and 200 with a paired token; a pytest covers both.
+- **Verified**: `tests/test_f2_auth.py` (6 tests) — 401 without a token, pair→200 with a token, wrong code → 401, garbage token → 401, events also protected; full suite 9/9 green.
+- **Deferred (by design)**: WebSocket `/ws/v1/events` auth and the dashboard's token-wiring are not in F2 (WS isn't a `/api/v1` router; the typed dashboard client is F4). The dashboard shows mock lists until F4 sends the token; the live WS stream still works.
 
 ### ⬜ F3 · Test harness, device simulator & CI — **M**  _(keystone)_
 - **Goal**: the system is verifiable and there's a hardware-free way to drive it.

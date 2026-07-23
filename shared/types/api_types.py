@@ -23,6 +23,16 @@ class AnomalyScorePayload(BaseModel):
     score: float
     context: Dict[str, Any]
 
+class PairRequest(BaseModel):
+    pairing_code: str = Field(..., description="Out-of-band pairing code shown by the hub during setup")
+    client_name: Optional[str] = Field(None, description="Human-friendly identifier for the pairing client")
+
+class PairResponse(BaseModel):
+    access_token: str = Field(..., description="Signed JWT to send as an Authorization: Bearer token")
+    token_type: Literal["bearer"] = "bearer"
+    expires_at: int = Field(..., description="Token expiry as a UTC Unix timestamp (seconds)")
+    client_id: str = Field(..., description="Identifier embedded in the token's subject claim")
+
 class LLMQueryRequest(BaseModel):
     prompt: str = Field(..., description="Natural language prompt for the on-device assistant")
 
