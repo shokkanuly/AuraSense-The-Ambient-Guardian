@@ -1,0 +1,31 @@
+[project]
+name = "aurasense-hub"
+version = "0.1.0"
+description = "AuraSense — privacy-first edge-AI ambient guardian hub"
+requires-python = ">=3.12"
+
+[tool.pytest.ini_options]
+# Makes `pytest` work from the repo root without exporting PYTHONPATH.
+pythonpath = ["."]
+testpaths = ["tests"]
+addopts = "-ra"
+markers = [
+    "timeout: bound a test's wall-clock duration (pytest-timeout)",
+]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+# The dashboard is a separate JS/TS project with its own eslint config.
+extend-exclude = ["dashboard", ".venv"]
+
+[tool.ruff.lint]
+# Pyflakes (real errors: unused imports, undefined names) + syntax errors.
+# Kept deliberately tight so CI gates on correctness, not style churn.
+select = ["E9", "F"]
+
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
+# Advisory locally; not a hard CI gate yet (the codebase isn't fully typed).
+exclude = ["dashboard", "\\.venv", "ml/training"]

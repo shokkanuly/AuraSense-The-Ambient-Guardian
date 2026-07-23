@@ -6,15 +6,12 @@ from datetime import datetime, timezone
 import paho.mqtt.client as mqtt
 import asyncpg
 from pydantic import ValidationError
-from typing import Dict, Any
 
 # Ensure path to shared is importable
 import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
 
-from shared.types.sensor_payload import (
-    PowerPayload, AudioPayload, MotionPayload, EnvPayload
-)
+from shared.types.sensor_payload import PAYLOAD_MODELS
 
 # Configuration
 MQTT_BROKER = os.getenv("MQTT_BROKER", "localhost")
@@ -25,13 +22,6 @@ DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localho
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger("ingestion-service")
 
-# Payload mapper based on sensor type
-PAYLOAD_MODELS = {
-    "power": PowerPayload,
-    "audio": AudioPayload,
-    "motion": MotionPayload,
-    "env": EnvPayload
-}
 
 class IngestionService:
     def __init__(self):

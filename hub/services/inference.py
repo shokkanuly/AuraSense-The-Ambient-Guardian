@@ -6,7 +6,6 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 import asyncpg
-from typing import Dict, Any, List
 
 # Ensure path to shared is importable
 import sys
@@ -162,16 +161,13 @@ class InferenceService:
             return
 
         fall_triggered = False
-        breathing_anomaly = False
+        # TODO(M3): breathing-rate anomaly detection (radar) is not wired yet;
+        # it becomes part of the real fall/vitals model in the ML stage.
 
         for r in rows:
             feats = json.loads(r["features"])
             if feats.get("fall_detected", False):
                 fall_triggered = True
-            
-            breathing = feats.get("breathing_rate", 16.0)
-            if breathing < 8.0 or breathing > 30.0:
-                breathing_anomaly = True
 
         # Raise event if fall detected
         if fall_triggered:

@@ -1,5 +1,4 @@
 import os
-import numpy as np
 import json
 
 def train_and_export():

@@ -82,15 +82,18 @@ docker-compose.yml   ✅ TimescaleDB + Mosquitto
 - **Verified**: `tests/test_f2_auth.py` (6 tests) — 401 without a token, pair→200 with a token, wrong code → 401, garbage token → 401, events also protected; full suite 9/9 green.
 - **Deferred (by design)**: WebSocket `/ws/v1/events` auth and the dashboard's token-wiring are not in F2 (WS isn't a `/api/v1` router; the typed dashboard client is F4). The dashboard shows mock lists until F4 sends the token; the live WS stream still works.
 
-### ⬜ F3 · Test harness, device simulator & CI — **M**  _(keystone)_
+### ✅ F3 · Test harness, device simulator & CI — **M**  _(done 2026-07-24)_  _(keystone)_
 - **Goal**: the system is verifiable and there's a hardware-free way to drive it.
-- **Steps**:
-  - `pytest` + `pytest-asyncio`; unit tests for ingestion validation, event throttling, auth; an API integration test against an ephemeral Timescale container.
-  - **`tools/sim/` device simulator**: publishes realistic power/audio/motion/env feature vectors (and scripted anomalies: fridge drift, 3 a.m. water, a fall) to MQTT — schema-valid against `shared/types`.
-  - GitHub Actions: lint + typecheck + tests on push; build the dashboard.
-  - Add `pyproject.toml` (ruff + mypy) at repo root.
+- **Steps** (done):
+  - **`tools/sim/` device simulator**: publishes schema-valid power/audio/motion/env feature vectors over MQTT with scenarios (`normal`, `fall`, `microwave`, `water`, `night`). Pure generator (`generator.py`) + CLI (`python -m tools.sim`).
+  - Centralized the sensor-`type`→model map as `PAYLOAD_MODELS` in `shared/types/sensor_payload.py` (was duplicated in ingestion) so sim/tests/ingestion can't drift.
+  - Expanded `tests/`: simulator schema-validity (every sensor×scenario validates against the contracts), ingestion validation rejection, fall-detection + throttling. Suite = **35 tests**.
+  - `pyproject.toml` (pytest `pythonpath`, ruff `E9`/`F`, mypy config) + `requirements-dev.txt`.
+  - `hub/db/init_db.py`: idempotent schema initializer (CI applies it to a fresh DB).
+  - `.github/workflows/ci.yml`: hub job (Timescale service → schema init → ruff → pytest) + dashboard build job.
 - **Depends on**: F1 (F2 recommended).
-- **Done when**: `pytest` is green in CI; `python -m tools.sim --scenario fall` makes a CRITICAL event show up via the API/WS end-to-end.
+- **Verified**: `ruff` clean; 35/35 pytest green; schema-init works via asyncpg; and the literal acceptance — `python -m tools.sim --scenario fall` (with ingestion+inference+API running) produced a CRITICAL `fall_detected` event fetched through the authenticated `/api/v1/events` endpoint (full sim→ingest→infer→event→API chain).
+- **Note**: the dashboard CI job (`bun install`/`bun run build`) isn't verifiable in this local env (no bun) — watch it on the first CI run; it's isolated from the hub job.
 
 ### ⬜ F4 · Real data endpoints + TimescaleDB policies — **M**
 - **Goal**: the dashboard shows real data; the DB won't grow unbounded.

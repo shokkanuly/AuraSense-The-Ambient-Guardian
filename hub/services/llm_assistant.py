@@ -4,7 +4,7 @@ import asyncio
 import logging
 import asyncpg
 from datetime import datetime, timedelta, timezone
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List
 
 # Set up logging
 logger = logging.getLogger("llm-assistant")

@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Dict, Any, List, Optional, Literal
+from typing import List, Literal
 
 class BaseSensorPayload(BaseModel):
     node_id: str = Field(..., description="Unique identifier for the sensor node")
@@ -43,3 +43,14 @@ class EnvFeatures(BaseModel):
 class EnvPayload(BaseSensorPayload):
     type: Literal["env"] = "env"
     features: EnvFeatures
+
+
+# Single source of truth mapping a sensor `type` (as it appears in the MQTT
+# topic) to its payload model. Shared by the ingestion service and the
+# device simulator / tests so the two never drift.
+PAYLOAD_MODELS = {
+    "power": PowerPayload,
+    "audio": AudioPayload,
+    "motion": MotionPayload,
+    "env": EnvPayload,
+}
