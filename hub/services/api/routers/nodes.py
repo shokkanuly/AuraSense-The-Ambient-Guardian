@@ -1,7 +1,6 @@
 import os
 from fastapi import APIRouter, Depends, HTTPException, status
 import asyncpg
-from typing import List
 import sys
 
 # Ensure import of shared types

@@ -6,15 +6,12 @@ from datetime import datetime, timezone
 import paho.mqtt.client as mqtt
 import asyncpg
 from pydantic import ValidationError
-from typing import Dict, Any
 
 # Ensure path to shared is importable
 import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
 
-from shared.types.sensor_payload import (
-    PowerPayload, AudioPayload, MotionPayload, EnvPayload
-)
+from shared.types.sensor_payload import PAYLOAD_MODELS
 
 # Configuration
 MQTT_BROKER = os.getenv("MQTT_BROKER", "localhost")
@@ -25,13 +22,6 @@ DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localho
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger("ingestion-service")
 
-# Payload mapper based on sensor type
-PAYLOAD_MODELS = {
-    "power": PowerPayload,
-    "audio": AudioPayload,
-    "motion": MotionPayload,
-    "env": EnvPayload
-}
 
 class IngestionService:
     def __init__(self):
@@ -119,7 +109,7 @@ class IngestionService:
                 ts_datetime,
                 validated.node_id,
                 validated.type,
-                json.dumps(validated.features.dict())
+                json.dumps(validated.features.model_dump())
             )
 
         logger.info(f"Ingested {sensor_type} reading for node {node_id} at ts {validated.ts}")
@@ -133,13 +123,15 @@ class IngestionService:
         # Safely submit to the asyncio event loop queue
         self.loop.call_soon_threadsafe(self.queue.put_nowait, data)
 
-    def on_mqtt_connect(self, client, userdata, flags, rc):
-        if rc == 0:
+    def on_mqtt_connect(self, client, userdata, flags, reason_code, properties):
+        # paho-mqtt v2 (CallbackAPIVersion.VERSION2) signature. ``reason_code``
+        # compares equal to 0 on success.
+        if reason_code == 0:
             logger.info("Connected to MQTT Broker!")
             # Subscribe to all sensor node readings
             client.subscribe("aurasense/nodes/#")
         else:
-            logger.error(f"Failed to connect to MQTT Broker, return code {rc}")
+            logger.error(f"Failed to connect to MQTT Broker, reason code {reason_code}")
 
     async def run(self):
         self.loop = asyncio.get_running_loop()
@@ -149,8 +141,8 @@ class IngestionService:
         # Start database insertion worker
         asyncio.create_task(self.process_queue())
 
-        # Setup MQTT Client
-        client = mqtt.Client()
+        # Setup MQTT Client (paho-mqtt v2 callback API)
+        client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
         client.on_connect = self.on_mqtt_connect
         client.on_message = self.on_mqtt_message
 

@@ -2,7 +2,7 @@ import os
 import json
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 import asyncpg
-from typing import List, Optional
+from typing import Optional
 import sys
 
 # Ensure import of shared types

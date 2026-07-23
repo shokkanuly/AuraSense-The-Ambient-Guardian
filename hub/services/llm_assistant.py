@@ -1,24 +1,33 @@
 import os
 import json
+import asyncio
 import logging
 import asyncpg
 from datetime import datetime, timedelta, timezone
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List
 
 # Set up logging
 logger = logging.getLogger("llm-assistant")
 
 class LLMAssistant:
-    def __init__(self, db_url: str):
-        self.db_url = db_url
+    def __init__(self, db_pool: asyncpg.Pool):
+        # Shares the application's connection pool instead of opening a new
+        # connection per query.
+        self.db_pool = db_pool
         self.model = None
-        self.load_model()
+        self._model_loaded = False
 
     def load_model(self):
         """
         Attempts to load llama.cpp models if files and bindings are available.
         Otherwise falls back to mock generated responses for local testing.
+
+        Called once from the application lifespan on a worker thread, so a
+        missing or large model file never blocks the event loop / API startup.
         """
+        if self._model_loaded:
+            return
+        self._model_loaded = True
         try:
             # Lazy import to avoid crash if bindings are not installed yet
             from llama_cpp import Llama
@@ -37,8 +46,9 @@ class LLMAssistant:
         Retrieves context: recent alerts, anomalous scores, and active sensors.
         """
         context_items = []
-        conn = await asyncpg.connect(self.db_url)
+        conn = None
         try:
+            conn = await self.db_pool.acquire()
             # 1. Fetch recent events (last 12 hours)
             cutoff = datetime.now(timezone.utc) - timedelta(hours=12)
             events = await conn.fetch(
@@ -89,7 +99,8 @@ class LLMAssistant:
         except Exception as e:
             logger.error(f"Error fetching DB context for LLM: {e}")
         finally:
-            await conn.close()
+            if conn is not None:
+                await self.db_pool.release(conn)
 
         return context_items
 
@@ -150,7 +161,7 @@ class LLMAssistant:
             )
             
             try:
-                loop = asyncio.get_event_loop()
+                loop = asyncio.get_running_loop()
                 # Run Llama CPU inference in execution pool to keep async loop unblocked
                 output = await loop.run_in_executor(
                     None,
