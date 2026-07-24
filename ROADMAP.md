@@ -95,11 +95,16 @@ docker-compose.yml   ✅ TimescaleDB + Mosquitto
 - **Verified**: `ruff` clean; 35/35 pytest green; schema-init works via asyncpg; and the literal acceptance — `python -m tools.sim --scenario fall` (with ingestion+inference+API running) produced a CRITICAL `fall_detected` event fetched through the authenticated `/api/v1/events` endpoint (full sim→ingest→infer→event→API chain).
 - **Note**: the dashboard CI job (`bun install`/`bun run build`) isn't verifiable in this local env (no bun) — watch it on the first CI run; it's isolated from the hub job.
 
-### ⬜ F4 · Real data endpoints + TimescaleDB policies — **M**
+### ✅ F4 · Real data endpoints + TimescaleDB policies — **M**  _(done 2026-07-24)_
 - **Goal**: the dashboard shows real data; the DB won't grow unbounded.
-- **Steps**: add `GET /api/v1/energy` (NILM disaggregation time-series) and `GET /api/v1/anomaly-scores`; add continuous aggregates (hourly/daily rollups), compression, and a retention policy in `hub/db/schema.sql` (+ a migration file); wire `dashboard/src/routes/console.tsx` NILM chart and a new anomaly view to the real endpoints; move the hardcoded `http://localhost:8000` to a `VITE_` env + typed API client (`dashboard/src/lib/api.ts`).
-- **Depends on**: F1.
-- **Done when**: with the simulator running, the console's NILM chart and anomaly panel render live server data (no `mock*` arrays), verified in the browser.
+- **Steps** (done):
+  - Hub: new `energy_disaggregation` hypertable; inference persists the NILM breakdown each cycle; `GET /api/v1/energy` + `GET /api/v1/anomaly-scores` (token-protected); compression (7d) + retention (30/90d) policies in `schema.sql` + `hub/db/migrations/001_f4_energy_and_policies.sql`.
+  - Dashboard: typed hub client `dashboard/src/lib/api.ts` that pairs for a token (F2) and exposes typed calls; `console.tsx` now drives the NILM chart and a new Behavioral-Anomaly panel from the live endpoints and drops the `mock*` arrays; `VITE_HUB_URL`/`VITE_PAIRING_CODE` env (+ `dashboard/.env.example`, `vite-env.d.ts`). The CORS default now includes the dashboard's :8080 origin.
+- **Depends on**: F1 (F2 for the token).
+- **Verified**: hub — 38/38 pytest green; schema + policies apply. Dashboard — `tsc` clean, `npm run build` succeeds, and **browser-verified**: with the stack + simulator running, the console rendered live nodes/events, a live NILM area chart (real time-buckets + appliance legend) and the anomaly panel (live score, 0–1 axis, threshold line) — no mock data.
+- **Deferred (noted)**: continuous-aggregate rollups (CAGG-in-transaction constraint) and WebSocket auth (client work) — both fast follows.
+
+> **Phase 0 (Foundation) complete — F1–F4 done.** Next: Phase 1 (real ML), starting with M1 (training pipeline scaffolding).
 
 ---
 

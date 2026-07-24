@@ -72,7 +72,11 @@ app = FastAPI(
 # both safer and more correct. Override with AURASENSE_ALLOWED_ORIGINS (CSV).
 ALLOWED_ORIGINS = [
     o.strip()
-    for o in os.getenv("AURASENSE_ALLOWED_ORIGINS", "http://localhost:3000").split(",")
+    for o in os.getenv(
+        "AURASENSE_ALLOWED_ORIGINS",
+        # Dashboard dev server (Vite) runs on :8080; :3000 kept as a common default.
+        "http://localhost:8080,http://localhost:3000",
+    ).split(",")
     if o.strip()
 ]
 app.add_middleware(
