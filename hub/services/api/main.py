@@ -97,10 +97,11 @@ async def health():
 
 # Import and include routers (imported last: they depend on get_db defined above).
 # The data routers require a valid pairing token; /pair and the health check are open.
-from hub.services.api.routers import nodes, events, assistant, websocket, pairing
+from hub.services.api.routers import nodes, events, assistant, websocket, pairing, energy
 
 app.include_router(pairing.router, prefix="/api/v1", tags=["Pairing"])
 app.include_router(nodes.router, prefix="/api/v1", tags=["Nodes"], dependencies=[Depends(verify_token)])
 app.include_router(events.router, prefix="/api/v1", tags=["Events"], dependencies=[Depends(verify_token)])
 app.include_router(assistant.router, prefix="/api/v1", tags=["Assistant"], dependencies=[Depends(verify_token)])
+app.include_router(energy.router, prefix="/api/v1", tags=["Data"], dependencies=[Depends(verify_token)])
 app.include_router(websocket.router, tags=["WebSockets"])
