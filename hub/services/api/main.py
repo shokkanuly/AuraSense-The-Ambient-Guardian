@@ -72,7 +72,11 @@ app = FastAPI(
 # both safer and more correct. Override with AURASENSE_ALLOWED_ORIGINS (CSV).
 ALLOWED_ORIGINS = [
     o.strip()
-    for o in os.getenv("AURASENSE_ALLOWED_ORIGINS", "http://localhost:3000").split(",")
+    for o in os.getenv(
+        "AURASENSE_ALLOWED_ORIGINS",
+        # Dashboard dev server (Vite) runs on :8080; :3000 kept as a common default.
+        "http://localhost:8080,http://localhost:3000",
+    ).split(",")
     if o.strip()
 ]
 app.add_middleware(
@@ -97,10 +101,11 @@ async def health():
 
 # Import and include routers (imported last: they depend on get_db defined above).
 # The data routers require a valid pairing token; /pair and the health check are open.
-from hub.services.api.routers import nodes, events, assistant, websocket, pairing
+from hub.services.api.routers import nodes, events, assistant, websocket, pairing, energy
 
 app.include_router(pairing.router, prefix="/api/v1", tags=["Pairing"])
 app.include_router(nodes.router, prefix="/api/v1", tags=["Nodes"], dependencies=[Depends(verify_token)])
 app.include_router(events.router, prefix="/api/v1", tags=["Events"], dependencies=[Depends(verify_token)])
 app.include_router(assistant.router, prefix="/api/v1", tags=["Assistant"], dependencies=[Depends(verify_token)])
+app.include_router(energy.router, prefix="/api/v1", tags=["Data"], dependencies=[Depends(verify_token)])
 app.include_router(websocket.router, tags=["WebSockets"])

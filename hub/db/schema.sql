@@ -51,6 +51,20 @@ SELECT create_hypertable('anomaly_scores', 'ts', if_not_exists => TRUE);
 
 CREATE INDEX IF NOT EXISTS idx_anomaly_scores_model_ts ON anomaly_scores (model, ts DESC);
 
+-- Energy Disaggregation (NILM output) Table
+-- One row per inference cycle per power node: the appliance breakdown produced
+-- by non-intrusive load monitoring, kept as a time-series for the dashboard.
+CREATE TABLE IF NOT EXISTS energy_disaggregation (
+    ts TIMESTAMPTZ NOT NULL,
+    node_id VARCHAR(100) NOT NULL,
+    appliances JSONB NOT NULL,        -- {"refrigerator": W, "microwave": W, ...}
+    total_w DOUBLE PRECISION NOT NULL
+);
+
+SELECT create_hypertable('energy_disaggregation', 'ts', if_not_exists => TRUE);
+
+CREATE INDEX IF NOT EXISTS idx_energy_node_ts ON energy_disaggregation (node_id, ts DESC);
+
 -- Listen/Notify Trigger configuration for events table
 CREATE OR REPLACE FUNCTION notify_event_insert()
 RETURNS TRIGGER AS $$
@@ -75,3 +89,25 @@ CREATE OR REPLACE TRIGGER trg_notify_event_insert
 AFTER INSERT ON events
 FOR EACH ROW
 EXECUTE FUNCTION notify_event_insert();
+
+-- ---------------------------------------------------------------------------
+-- Lifecycle policies (F4): compress old chunks and drop very old raw data so
+-- the hub's local disk does not grow unbounded. All idempotent.
+-- (Continuous-aggregate rollups are a planned follow-on; they must be created
+-- outside a transaction block, which the one-shot schema apply cannot provide.)
+-- ---------------------------------------------------------------------------
+ALTER TABLE sensor_readings SET (
+    timescaledb.compress,
+    timescaledb.compress_segmentby = 'node_id, type'
+);
+SELECT add_compression_policy('sensor_readings', INTERVAL '7 days', if_not_exists => TRUE);
+SELECT add_retention_policy('sensor_readings', INTERVAL '30 days', if_not_exists => TRUE);
+
+ALTER TABLE energy_disaggregation SET (
+    timescaledb.compress,
+    timescaledb.compress_segmentby = 'node_id'
+);
+SELECT add_compression_policy('energy_disaggregation', INTERVAL '7 days', if_not_exists => TRUE);
+SELECT add_retention_policy('energy_disaggregation', INTERVAL '90 days', if_not_exists => TRUE);
+
+SELECT add_retention_policy('anomaly_scores', INTERVAL '90 days', if_not_exists => TRUE);

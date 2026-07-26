@@ -122,6 +122,16 @@ class InferenceService:
             "other": other_w
         }
 
+        # Persist the disaggregation as a time-series point for the /api/v1/energy
+        # endpoint and the dashboard's NILM chart.
+        await conn.execute(
+            """
+            INSERT INTO energy_disaggregation (ts, node_id, appliances, total_w)
+            VALUES ($1, $2, $3, $4)
+            """,
+            datetime.now(timezone.utc), node_id, json.dumps(disaggregated_payload), avg_power
+        )
+
         # Log an event if microwave is drawing excessive continuous power
         if microwave_w > 1000 and len(power_values) > 10:
             # Check if event already raised in the last 10 minutes
