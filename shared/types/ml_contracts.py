@@ -5,12 +5,16 @@ from typing import Dict, List
 class NILMInput:
     # A sliding window of power readings (current, voltage, power, thd)
     # Expected shape: (sequence_length, 4)
-    power_sequence: List[List[float]] 
+    power_sequence: List[List[float]]
+    # Ground-truth power measurements from sub-meter calibration anchors (e.g. {"heat_pump": 2100.0, "fridge_01": 140.0})
+    submeter_anchors: Dict[str, float] = None
 
 @dataclass
 class NILMOutput:
-    # Key: appliance name (e.g., "refrigerator", "microwave"), Value: active power consumption in Watts
+    # Key: appliance name (e.g., "refrigerator", "microwave", "heat_pump"), Value: active power consumption in Watts
     appliance_power: Dict[str, float]
+    # Indicates whether sub-meter ground truth anchors were applied to calibrate Sequence-to-Point disaggregation
+    calibration_anchors_applied: List[str] = None
 
 @dataclass
 class AcousticModelInput:

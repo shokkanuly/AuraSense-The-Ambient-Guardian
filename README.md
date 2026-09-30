@@ -207,4 +207,13 @@ Foundation (Phase 0) is complete. Next is Phase 1 — replacing the simulated ML
 
 ## 🛡 License
 
+
 Intended to be distributed under the **MIT License**. A `LICENSE` file has not been added yet — see the roadmap discussion or open a PR to add it.
+
+---
+
+## 🛠 Hardware & Architecture Documentation
+
+- **[System Architecture Evaluation & Arduino Hardware Foundation](docs/PROJECT_EVALUATION_AND_HARDWARE_FOUNDATION.md)**: Deep-dive assessment of all subsystems, consensus matrix engine, and hardware design.
+- **[Arduino Node Firmware & Wiring Guide](firmware/arduino/README.md)**: Step-by-step breadboard assembly, pinouts, bill of materials, and flashing guide for ESP32 and ESP32-S3 boards.
+

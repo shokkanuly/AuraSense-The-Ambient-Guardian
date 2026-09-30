@@ -22,7 +22,6 @@ DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localho
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger("ingestion-service")
 
-
 class IngestionService:
     def __init__(self):
         self.db_pool = None
@@ -101,6 +100,7 @@ class IngestionService:
             )
 
             # 2. Insert the actual readings hypertable entry
+            features_dict = validated.features.model_dump() if hasattr(validated.features, 'model_dump') else validated.features.dict()
             await conn.execute(
                 """
                 INSERT INTO sensor_readings (ts, node_id, type, features)
@@ -109,7 +109,7 @@ class IngestionService:
                 ts_datetime,
                 validated.node_id,
                 validated.type,
-                json.dumps(validated.features.model_dump())
+                json.dumps(features_dict)
             )
 
         logger.info(f"Ingested {sensor_type} reading for node {node_id} at ts {validated.ts}")

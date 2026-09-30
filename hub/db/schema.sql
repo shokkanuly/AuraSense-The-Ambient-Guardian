@@ -4,7 +4,7 @@ CREATE EXTENSION IF NOT EXISTS timescaledb CASCADE;
 -- Nodes Table
 CREATE TABLE IF NOT EXISTS nodes (
     node_id VARCHAR(100) PRIMARY KEY,
-    type VARCHAR(50) NOT NULL, -- 'power', 'audio', 'motion', 'env'
+    type VARCHAR(50) NOT NULL, -- 'power', 'audio', 'motion', 'env', 'submeter', 'pulse_meter'
     last_seen BIGINT NOT NULL, -- UTC Unix timestamp in seconds
     firmware_version VARCHAR(50) NOT NULL,
     status VARCHAR(20) NOT NULL DEFAULT 'ONLINE' -- 'ONLINE', 'STALE', 'OFFLINE'
@@ -28,14 +28,15 @@ CREATE INDEX IF NOT EXISTS idx_sensor_readings_node_type_ts ON sensor_readings (
 CREATE TABLE IF NOT EXISTS events (
     event_id VARCHAR(100) PRIMARY KEY,
     ts TIMESTAMPTZ NOT NULL,
-    type VARCHAR(100) NOT NULL, -- e.g., 'power_anomaly', 'glass_break', 'fall'
-    severity VARCHAR(20) NOT NULL, -- 'INFO', 'WARNING', 'CRITICAL'
+    type VARCHAR(100) NOT NULL, -- e.g., 'power_anomaly', 'glass_break', 'fall', 'consensus_verified_fall'
+    severity VARCHAR(50) NOT NULL, -- 'INFO', 'WARNING', 'CRITICAL', 'CRITICAL_EMERGENCY', 'WARNING_HAZARD', 'CRITICAL_SECURITY'
     node_id VARCHAR(100) NOT NULL REFERENCES nodes(node_id),
     payload JSONB NOT NULL,
     acknowledged BOOLEAN NOT NULL DEFAULT FALSE
 );
 
 CREATE INDEX IF NOT EXISTS idx_events_ts ON events (ts DESC);
+CREATE INDEX IF NOT EXISTS idx_events_severity_ts ON events (severity, ts DESC);
 CREATE INDEX IF NOT EXISTS idx_events_unack ON events (acknowledged) WHERE acknowledged = FALSE;
 
 -- Anomaly Scores Table

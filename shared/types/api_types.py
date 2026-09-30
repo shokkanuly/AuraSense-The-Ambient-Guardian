@@ -3,7 +3,7 @@ from typing import Dict, Any, List, Optional, Literal
 
 class NodeStatus(BaseModel):
     node_id: str
-    type: Literal["power", "audio", "motion", "env"]
+    type: Literal["power", "audio", "motion", "env", "submeter", "pulse_meter"]
     last_seen: int
     firmware_version: str
     status: Literal["ONLINE", "STALE", "OFFLINE"]
@@ -11,8 +11,8 @@ class NodeStatus(BaseModel):
 class EventPayload(BaseModel):
     event_id: str
     ts: int
-    type: str  # e.g., "power_anomaly", "glass_break", "fall", etc.
-    severity: Literal["INFO", "WARNING", "CRITICAL"]
+    type: str  # e.g., "power_anomaly", "glass_break", "fall", "CRITICAL_EMERGENCY", etc.
+    severity: Literal["INFO", "WARNING", "CRITICAL", "CRITICAL_EMERGENCY", "WARNING_HAZARD", "CRITICAL_SECURITY"]
     node_id: str
     payload: Dict[str, Any]
     acknowledged: bool = False
